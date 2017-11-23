@@ -18,6 +18,7 @@ icinga2_node_ca_cert_perms:
     - name: {{icinga2.pki_dir}}/ca.crt
     - user: {{icinga2.user}}
     - group: {{icinga2.group}}
+    - replace: False
     - watch:
       - x509: icinga2_node_ca_cert
 
@@ -36,6 +37,7 @@ icinga2_node_key_perms:
     - user: {{icinga2.user}}
     - group: {{icinga2.group}}
     - mode: 600
+    - replace: False
     - watch:
       - x509: icinga2_node_key
 
@@ -58,5 +60,6 @@ icinga2_node_cert_perms:
     - name: {{icinga2.pki_dir}}/{{fqdn}}.crt
     - user: {{icinga2.user}}
     - group: {{icinga2.group}}
+    - replace: False
     - watch:
       - x509: icinga2_node_cert
