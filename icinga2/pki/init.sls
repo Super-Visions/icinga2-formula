@@ -11,7 +11,7 @@ include:
 
 icinga2_pki_dir:
   file.directory:
-    - name: '/etc/icinga2/pki'
+    - name: {{icinga2.pki_dir}}
     - user: {{ icinga2.user }}
     - group: {{ icinga2.group }}
     - require:

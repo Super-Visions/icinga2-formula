@@ -5,7 +5,7 @@ icinga2:
   config_dir: /etc/icinga2
   config_subdir: conf.d
   ca_dir: /var/lib/icinga2/ca
-  pki_dir: /etc/icinga2/pki
+  pki_dir: /var/lib/icinga2/certs
   user: icinga
   group: icinga
   config:

@@ -21,7 +21,7 @@ Compatibility
 
 **Saltstack**: 2015.8.8
 
-**Icinga2**: 2.4.8
+**Icinga2**: 2.8.0
 
 Available states
 ================
