@@ -1,10 +1,37 @@
+{%- macro printvalue(value) %}
+  {%- if value is none -%}
+    null
+  {#- Booleans are lowercase in icinga #}
+  {%- elif value is number -%}
+    {{ value|lower() }}
+  {%- elif value == "{}" or "vars" in value -%}
+    {{ value }}
+  {%- elif value is string -%}
+    "{{ value }}"
+  {%- endif %}
+{%- endmacro %}
+
 {%- macro printassign(key, value) %}
   {#- Check values like: 3, 25, 3s, 45m, 8d #}
-  {%- if value is number or "vars" in value or value in ["false","true"] or key in ["check_interval", "retry_interval"] %}
+  {%- if key in ["check_interval", "retry_interval"] %}
           {{ key }} = {{ value }}
   {#- Check string values, the more common #}
-  {%- elif value is string %}
-          {{ key }} = "{{ value }}"
+  {%- elif value is string or value is number or value is none %}
+          {{ key }} = {{ printvalue(value) }}
+  {#- Check dictionay values #}
+  {%- elif value is mapping %}
+          {{ key }} = {
+    {%- for k, v in value.items() -%}
+          {{ printassign(k,v)|indent(2) }}
+    {%- endfor %}
+          }
+  {#- Check array values #}
+  {%- elif value is iterable %}
+          {{ key }} = [
+    {%- for v in value %}
+            {{ printvalue(v) }}{% if not loop.last %},{% endif %}
+    {%- endfor %}
+          ]
   {%- endif %}
 {%- endmacro %}
 
@@ -13,7 +40,7 @@
         {{ type }} {{ object }} "{{ name }}" to {{ applyto }} {
   {%- elif applymethod == "for" %}
         {{ type }} {{ object }} for {{ applyto }} {
-  {%- elif object == "Host" and type != "template" %}
+  {%- elif name in ["NodeName"] %}
         {{ type }} {{ object }} {{ name }} {
   {%- else %}
         {{ type }} {{ object }} "{{ name }}" {
@@ -23,42 +50,29 @@
     {%- for key, value in config.items() %}
       {%- if key == "import" %}
           {{key}} "{{ value }}"
-      {%- endif %}
+      {% endif %}
     {%- endfor %}
     {%- for key, value in config.items() if key != "import" -%}
-      {{ printassign(key, value) }}
       {#- Handle vars values that can be a dict, list or value #}
       {%- if key == "vars"  %}
         {%- for varkey, varvalue in config.vars.items() %}
           {%- if varvalue is mapping %}
-            {%- for k, v in varvalue.items() %}
-          vars.{{ varkey }}["{{ k }}"] = {
-              {%- if v is not none %}
-                {%- for k1, v1 in v.items() -%}
-                  {{ printassign(k1, v1)|indent(2)}}
-                {%- endfor %}
-              {%- endif %}
-          }
+            {%- for k, v in varvalue.items() -%}
+          {{ printassign("vars." + varkey + "[\"" + k + "\"]", v or "{}") }}
             {%- endfor %}
           {%- else -%}
-            {{ printassign("vars." + varkey, varvalue) }}
+          {{ printassign("vars." + varkey, varvalue) }}
           {%- endif %}
         {%- endfor %}
-      {#- Handle dict values mapping dict type on yaml with icinga2 syntax #}
-      {%- elif value is mapping %}
-          {{ key }} = {
-        {%- for k, v in value.items() -%}
-            {{ printassign(k, v)|indent(2) }}
-        {%- endfor %}
-          }
       {#- Special case for assign and ignore #}
       {%- elif key in ["assign", "ignore"] %}
         {%- for item in value %}
           {{ key }} where {{ item }}
         {%- endfor %}
-      {#- Handle lists values mapping list type on yaml with icinga2 syntax #}
-      {%- elif value is iterable and not value is string %}
-          {{ key }} = [ {{ value|join(",") }} ]
+      {%- elif key in ["states", "types"] %}
+          {{ key }} = [ {{ value|join(", ") }} ]
+      {%- else -%}
+          {{ printassign(key, value) }}
       {%- endif %}
     {%- endfor %}
     {#- Add a line to aggregate variables read from dictionary #}
